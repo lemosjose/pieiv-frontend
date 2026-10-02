@@ -1,4 +1,7 @@
-# Next.js template
+# Projeto — IFTM PIE IV, 2026/2
+
+> **Start with [CLAUDE.md](CLAUDE.md)** — setup, commands, project map, scope, and
+> conventions all live there. The rest of this file is the leftover template README.
 
 This is a Next.js template with shadcn/ui.
 
