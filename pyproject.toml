@@ -1,0 +1,22 @@
+[project]
+name = "python-websockets"
+version = "0.1.0"
+description = "Cliente-servidor WebSocket que converte linhas para maiúsculas (FastAPI)"
+readme = "README.md"
+authors = [
+    { name = "voidjl", email = "devlemosjose@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.143.2",
+    "uvicorn[standard]>=0.54.0",
+    "websockets>=17.2",
+]
+
+[project.scripts]
+servidor = "python_websockets.server:main"
+cliente = "python_websockets.client:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
