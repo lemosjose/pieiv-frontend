@@ -4,13 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import axios from "axios"
 
 import { getApiErrorMessage } from "@/lib/api"
-
-export type ApiQuery<TData> = {
-  data: TData | null
-  error: string | null
-  isLoading: boolean
-  refetch: () => void
-}
+import type { ApiQuery } from "@/types/hooks"
 
 export function useApiQuery<TData>(
   request: (signal: AbortSignal) => Promise<TData>,

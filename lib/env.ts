@@ -72,5 +72,3 @@ export const env = {
   ),
   isProduction,
 } as const
-
-export type Env = typeof env

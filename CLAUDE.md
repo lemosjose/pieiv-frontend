@@ -73,9 +73,7 @@ npx playwright install --with-deps
 npm run typecheck && npm run lint
 ```
 
-> ⚠️ **`npm run typecheck` currently fails** on `routes/routes.ts` — a work-in-progress
-> file with an unterminated JSX expression, two `export default`s, and JSX inside a
-> `.ts` file. It is not part of the structure described below. Fix or delete it; see §6.
+> ⚠️ **`npm run lint` currently fails** on `hooks/useApiQuery.ts`; see §8.
 
 ---
 
@@ -114,6 +112,8 @@ lib/
   env.ts             Typed, validated environment variables. The only process.env reader.
   api.ts             The single axios instance + getApiErrorMessage().
   utils.ts           cn() — the only sanctioned class merger.
+services/            One request module per endpoint group; validates and maps responses.
+types/               Every type and interface — api, components, hooks, env. Nowhere else.
 public/              Static assets.
 integracao/          Playwright specs.
 .github/workflows/   CI — runs Playwright on push/PR to main and master.
@@ -135,8 +135,9 @@ merged through `cn()`, the way `components/ui/button.tsx` already does.
 
 ## 4. What needs building
 
-**Nothing from the product scope exists yet** — the app is still the starter page. The
-five prototype screens, their agreed routes, and the open questions blocking each are in
+**Only visual sign-up forms exist so far** — `/instituicoes/cadastro` and
+`/fornecedores/cadastro`, linked from the home page and header. The five prototype
+screens, their agreed routes, and the open questions blocking each are in
 [product.md](.claude/steering/product.md):
 
 | # | Screen | Route |
@@ -223,9 +224,8 @@ code. The traps most likely to bite:
 - **Parallel-route slots require an explicit `default.tsx`** or the build fails.
 - **`next/image` defaults tightened**: `qualities` is `[75]`, local IPs blocked,
   `images.domains` deprecated in favour of `remotePatterns`.
-- **JSX belongs in `.tsx` files**, not `.ts` — this is what breaks `routes/routes.ts`
-  today. Pages live in `app/<segment>/page.tsx`; a `routes/` folder is not a Next.js
-  convention and does not produce routes.
+- **JSX belongs in `.tsx` files**, not `.ts`. Pages live in `app/<segment>/page.tsx`; a
+  `routes/` folder is not a Next.js convention and does not produce routes.
 
 More in [tech.md](.claude/steering/tech.md).
 
@@ -248,15 +248,13 @@ More in [tech.md](.claude/steering/tech.md).
 
 ## 8. Known issues
 
-Three things are half-finished. They are recorded rather than hidden, so nobody
+Four things are half-finished. They are recorded rather than hidden, so nobody
 rediscovers them the hard way.
 
-1. **`routes/routes.ts` breaks `npm run typecheck`** — invalid JSX in a `.ts` file, two
-   `export default`s. Delete it and create pages under `app/` instead (§6).
-2. **Playwright never tests this app.** `playwright.config.ts` has `baseURL` and
-   `webServer` commented out, so CI starts no server, and
-   `integracao/example.spec.ts` is still the generated sample hitting `playwright.dev`.
-   The config fix is in [testing.md](.claude/steering/testing.md).
+1. **`hooks/useApiQuery.ts` breaks `npm run lint`** — `setState` called synchronously
+   inside an effect (`react-hooks/set-state-in-effect`).
+2. **The sign-up forms are visual only.** `components/user/SignUp.tsx` submits nowhere,
+   and its fields are placeholders until the API and database specs exist.
 3. **CI runs no typecheck and no lint**, and `vitest` is installed with no config and no
    script — configure it for `lib/`/`hooks/` logic or remove the dependency.
 4. **`NEXT_PUBLIC_API_BASE_URL` points at nothing.** The axios instance is configured and

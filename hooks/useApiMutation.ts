@@ -3,14 +3,7 @@
 import { useCallback, useState } from "react"
 
 import { getApiErrorMessage } from "@/lib/api"
-
-export type ApiMutation<TInput, TData> = {
-  data: TData | null
-  error: string | null
-  isLoading: boolean
-  mutate: (input: TInput) => Promise<TData | null>
-  reset: () => void
-}
+import type { ApiMutation } from "@/types/hooks"
 
 export function useApiMutation<TInput, TData>(
   request: (input: TInput) => Promise<TData>

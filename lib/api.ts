@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosInstance } from "axios"
 
 import { env } from "@/lib/env"
+import type { ApiError, ApiResponse, TypeGuard } from "@/types/api"
 
 export const api: AxiosInstance = axios.create({
   baseURL: env.apiBaseUrl,
@@ -11,22 +12,61 @@ export const api: AxiosInstance = axios.create({
   withCredentials: true,
 })
 
-type ApiErrorBody = {
-  readonly message: string
+export class UnexpectedResponseError extends Error {
+  constructor() {
+    super("O servidor retornou uma resposta inesperada.")
+    this.name = "UnexpectedResponseError"
+  }
 }
 
-function isApiErrorBody(value: unknown): value is ApiErrorBody {
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+export function isNullableNumber(value: unknown): value is number | null {
+  return value === null || typeof value === "number"
+}
+
+export function isIsoDate(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value))
+}
+
+export function isArrayOf<TItem>(
+  isItem: TypeGuard<TItem>
+): TypeGuard<readonly TItem[]> {
+  return (value): value is readonly TItem[] =>
+    Array.isArray(value) && value.every((item: unknown) => isItem(item))
+}
+
+export function parseApiResponse<TData>(
+  body: unknown,
+  isData: TypeGuard<TData>
+): ApiResponse<TData> {
+  if (!isRecord(body)) {
+    throw new UnexpectedResponseError()
+  }
+
+  const { code, data } = body
+
+  if (typeof code !== "number" || !isData(data)) {
+    throw new UnexpectedResponseError()
+  }
+
+  return { code, data }
+}
+
+function isApiError(value: unknown): value is ApiError {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    "message" in value &&
-    typeof (value as { message: unknown }).message === "string"
+    isRecord(value) &&
+    typeof value.code === "number" &&
+    typeof value.message === "string" &&
+    (value.field === undefined || typeof value.field === "string")
   )
 }
 
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof AxiosError) {
-    if (isApiErrorBody(error.response?.data)) {
+    if (isApiError(error.response?.data)) {
       return error.response.data.message
     }
 

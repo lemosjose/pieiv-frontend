@@ -1,86 +1,142 @@
 export type UserRole = "FORNECEDOR" | "INSTITUICAO"
-export type DocumentType = "CPF" | "CNPJ"
 export type DonationStatus =
   "DISPONIVEL" | "RESERVADO" | "CONCLUIDO" | "CANCELADO"
-export type AppointmentStatus = "ATIVO" | "CONCLUIDO" | "CANCELADO"
 
-export type User = {
-  id: number
-  name: string
-  email: string
-  role: UserRole
-  document: string
-  documentType: DocumentType
-  createdAt: string
+export type TypeGuard<T> = (value: unknown) => value is T
+
+// Wire shapes mirror the DDL columns. Columns without NOT NULL are nullable.
+
+export interface UsuarioRow {
+  id_usuario: number
+  nome_razao: string
+  tipo_perfil: UserRole | null
+  documento: string
 }
 
-export type Donation = {
-  id: number
-  description: string
-  quantity: number
-  unit: string
-  expiresAt: string
-  pickupAddress: string
-  userId: number
+export interface DoacaoRow {
+  id_doacao: number
+  descricao: string
+  id_fornecedor: number | null
+  status: DonationStatus | null
+}
+
+export interface AgendamentoRow {
+  id_agendamento: number
+  id_doacao: number | null
+  id_instituicao: number | null
+  data_retirada: string
+}
+
+export interface DoacaoComFornecedorRow extends Omit<
+  DoacaoRow,
+  "id_fornecedor" | "status"
+> {
+  id_fornecedor: number
   status: DonationStatus
-  createdAt: string
+  nome_razao: string
 }
 
-export type Appointment = {
-  id: number
-  donationId: number
-  userId: number
-  takenDate: string
-  status: AppointmentStatus
-  createdAt: string
+export interface AgendamentoComDoacaoRow extends Omit<
+  AgendamentoRow,
+  "id_doacao" | "id_instituicao"
+> {
+  id_doacao: number
+  id_instituicao: number
+  descricao: string
+  status: DonationStatus | null
+  id_fornecedor: number
+  nome_razao: string
 }
 
-export type ApiResponse<TData> = {
+export interface CreateUsuarioBody {
+  nome_razao: string
+  tipo_perfil: UserRole
+  documento: string
+}
+
+export interface CreateDoacaoBody {
+  descricao: string
+}
+
+export interface CreateAgendamentoBody {
+  id_doacao: number
+  data_retirada: string
+}
+
+export interface ApiResponse<TData> {
   code: number
   data: TData
 }
 
-export type ApiError = {
+export interface ApiError {
   code: number
   message: string
   field?: string
 }
 
-export type CreateUserRequest = {
+export type CreateUsuarioResponse = ApiResponse<UsuarioRow>
+export type CreateDoacaoResponse = ApiResponse<DoacaoRow>
+export type ListDoacoesResponse = ApiResponse<readonly DoacaoComFornecedorRow[]>
+export type CreateAgendamentoResponse = ApiResponse<AgendamentoRow>
+export type ListAgendamentosResponse = ApiResponse<
+  readonly AgendamentoComDoacaoRow[]
+>
+
+export interface User {
+  id: number
   name: string
-  email: string
-  password: string
+  role: UserRole | null
+  document: string
+}
+
+export interface Donation {
+  id: number
+  description: string
+  supplierId: number | null
+  status: DonationStatus | null
+}
+
+export interface Appointment {
+  id: number
+  donationId: number | null
+  institutionId: number | null
+  pickupDate: string
+}
+
+export interface DonationWithSupplier {
+  id: number
+  description: string
+  status: DonationStatus
+  supplier: {
+    id: number
+    name: string
+  }
+}
+
+export interface AppointmentWithDonation {
+  id: number
+  institutionId: number
+  pickupDate: string
+  donation: {
+    id: number
+    description: string
+    status: DonationStatus | null
+    supplierId: number
+  }
+  counterpartName: string
+}
+
+export interface CreateUserRequest {
+  name: string
   role: UserRole
   document: string
 }
 
-export type CreateDonationRequest = {
+export interface CreateDonationRequest {
   description: string
-  quantity: number
-  unit: string
-  expiresAt: string
-  pickupAddress: string
 }
 
-export type CreateAppointmentRequest = {
+export interface CreateAppointmentRequest {
   donationId: number
-  takenDate: string
+  pickupDate: string
 }
-
-export type DonationWithSupplier = Donation & {
-  supplier: Pick<User, "id" | "name">
-}
-
-export type AppointmentWithDonation = Appointment & {
-  donation: Pick<
-    Donation,
-    "id" | "description" | "quantity" | "unit" | "pickupAddress" | "status"
-  >
-  counterpart: Pick<User, "id" | "name">
-}
-
-export type CreateUserResponse = ApiResponse<User>
-export type CreateDonationResponse = ApiResponse<Donation>
-export type ListDonationsResponse = ApiResponse<DonationWithSupplier[]>
-export type CreateAppointmentResponse = ApiResponse<Appointment>
-export type ListAppointmentsResponse = ApiResponse<AppointmentWithDonation[]>
