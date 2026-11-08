@@ -43,3 +43,12 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+backend/.env
+
