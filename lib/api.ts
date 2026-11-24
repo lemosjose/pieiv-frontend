@@ -1,7 +1,12 @@
 import axios, { AxiosError, type AxiosInstance } from "axios"
 
 import { env } from "@/lib/env"
-import type { ApiError, ApiResponse, TypeGuard } from "@/types/api"
+import type {
+  ApiEnvelope,
+  ApiError,
+  TypeGuard,
+  ValidationIssue,
+} from "@/types/api"
 
 export const api: AxiosInstance = axios.create({
   baseURL: env.apiBaseUrl,
@@ -23,8 +28,8 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-export function isNullableNumber(value: unknown): value is number | null {
-  return value === null || typeof value === "number"
+export function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string"
 }
 
 export function isIsoDate(value: unknown): value is string {
@@ -38,36 +43,47 @@ export function isArrayOf<TItem>(
     Array.isArray(value) && value.every((item: unknown) => isItem(item))
 }
 
-export function parseApiResponse<TData>(
+export function parseBody<TData>(
   body: unknown,
   isData: TypeGuard<TData>
-): ApiResponse<TData> {
-  if (!isRecord(body)) {
+): TData {
+  if (!isData(body)) {
     throw new UnexpectedResponseError()
   }
 
-  const { code, data } = body
+  return body
+}
 
-  if (typeof code !== "number" || !isData(data)) {
-    throw new UnexpectedResponseError()
-  }
+export function parseEnvelope<TData>(
+  body: unknown,
+  isData: TypeGuard<TData>
+): TData {
+  const isEnvelope = (value: unknown): value is ApiEnvelope<TData> =>
+    isRecord(value) && typeof value.mensagem === "string" && isData(value.dados)
 
-  return { code, data }
+  return parseBody(body, isEnvelope).dados
+}
+
+function isValidationIssue(value: unknown): value is ValidationIssue {
+  return isRecord(value) && typeof value.msg === "string"
 }
 
 function isApiError(value: unknown): value is ApiError {
   return (
     isRecord(value) &&
-    typeof value.code === "number" &&
-    typeof value.message === "string" &&
-    (value.field === undefined || typeof value.field === "string")
+    (typeof value.detail === "string" ||
+      isArrayOf(isValidationIssue)(value.detail))
   )
 }
 
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof AxiosError) {
-    if (isApiError(error.response?.data)) {
-      return error.response.data.message
+    const body: unknown = error.response?.data
+
+    if (isApiError(body)) {
+      return typeof body.detail === "string"
+        ? body.detail
+        : body.detail.map((issue) => issue.msg).join(" ")
     }
 
     if (error.code === AxiosError.ECONNABORTED) {

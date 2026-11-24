@@ -16,11 +16,11 @@ class EnvError extends Error {
   }
 }
 
-// Empty means same-origin: the API is served by this app's Route Handlers under
-// /api. Set it only to point at a separate backend.
+const devApiBaseUrl = "http://localhost:8000"
+
 function parseBaseUrl(name: string, value: string | undefined): string {
   if (value === undefined || value.trim() === "") {
-    return ""
+    return isProduction ? "" : devApiBaseUrl
   }
 
   const trimmed = value.trim()

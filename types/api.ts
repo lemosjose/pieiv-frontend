@@ -4,48 +4,32 @@ export type DonationStatus =
 
 export type TypeGuard<T> = (value: unknown) => value is T
 
-// Wire shapes mirror the DDL columns. Columns without NOT NULL are nullable.
-
 export interface UsuarioRow {
   id_usuario: number
   nome_razao: string
-  tipo_perfil: UserRole | null
+  tipo_perfil: UserRole
   documento: string
 }
 
 export interface DoacaoRow {
   id_doacao: number
   descricao: string
-  id_fornecedor: number | null
-  status: DonationStatus | null
+  id_fornecedor: number
+  status: DonationStatus
 }
 
 export interface AgendamentoRow {
   id_agendamento: number
-  id_doacao: number | null
-  id_instituicao: number | null
+  id_doacao: number
+  id_instituicao: number
   data_retirada: string
 }
 
-export interface DoacaoComFornecedorRow extends Omit<
-  DoacaoRow,
-  "id_fornecedor" | "status"
-> {
-  id_fornecedor: number
-  status: DonationStatus
-  nome_razao: string
-}
-
-export interface AgendamentoComDoacaoRow extends Omit<
-  AgendamentoRow,
-  "id_doacao" | "id_instituicao"
-> {
-  id_doacao: number
-  id_instituicao: number
-  descricao: string
-  status: DonationStatus | null
-  id_fornecedor: number
-  nome_razao: string
+export interface AgendamentoDetalhadoRow extends AgendamentoRow {
+  descricao_doacao: string | null
+  status_doacao: DonationStatus | null
+  nome_fornecedor: string | null
+  nome_instituicao: string | null
 }
 
 export interface CreateUsuarioBody {
@@ -56,74 +40,54 @@ export interface CreateUsuarioBody {
 
 export interface CreateDoacaoBody {
   descricao: string
+  id_fornecedor: number
 }
 
 export interface CreateAgendamentoBody {
   id_doacao: number
+  id_instituicao: number
   data_retirada: string
 }
 
-export interface ApiResponse<TData> {
-  code: number
-  data: TData
+export interface ApiEnvelope<TData> {
+  mensagem: string
+  dados: TData
+}
+
+export interface ValidationIssue {
+  msg: string
 }
 
 export interface ApiError {
-  code: number
-  message: string
-  field?: string
+  detail: string | readonly ValidationIssue[]
 }
-
-export type CreateUsuarioResponse = ApiResponse<UsuarioRow>
-export type CreateDoacaoResponse = ApiResponse<DoacaoRow>
-export type ListDoacoesResponse = ApiResponse<readonly DoacaoComFornecedorRow[]>
-export type CreateAgendamentoResponse = ApiResponse<AgendamentoRow>
-export type ListAgendamentosResponse = ApiResponse<
-  readonly AgendamentoComDoacaoRow[]
->
 
 export interface User {
   id: number
   name: string
-  role: UserRole | null
+  role: UserRole
   document: string
 }
 
 export interface Donation {
   id: number
   description: string
-  supplierId: number | null
-  status: DonationStatus | null
+  supplierId: number
+  status: DonationStatus
 }
 
 export interface Appointment {
   id: number
-  donationId: number | null
-  institutionId: number | null
-  pickupDate: string
-}
-
-export interface DonationWithSupplier {
-  id: number
-  description: string
-  status: DonationStatus
-  supplier: {
-    id: number
-    name: string
-  }
-}
-
-export interface AppointmentWithDonation {
-  id: number
+  donationId: number
   institutionId: number
   pickupDate: string
-  donation: {
-    id: number
-    description: string
-    status: DonationStatus | null
-    supplierId: number
-  }
-  counterpartName: string
+}
+
+export interface AppointmentDetails extends Appointment {
+  donationDescription: string | null
+  donationStatus: DonationStatus | null
+  supplierName: string | null
+  institutionName: string | null
 }
 
 export interface CreateUserRequest {
@@ -134,9 +98,16 @@ export interface CreateUserRequest {
 
 export interface CreateDonationRequest {
   description: string
+  supplierId: number
 }
 
 export interface CreateAppointmentRequest {
   donationId: number
+  institutionId: number
   pickupDate: string
+}
+
+export interface ListDonationsOptions {
+  onlyAvailable?: boolean
+  signal?: AbortSignal
 }

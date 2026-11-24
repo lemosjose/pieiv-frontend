@@ -1,10 +1,9 @@
 import type { AxiosResponse } from "axios"
 
-import { api, isRecord, parseApiResponse } from "@/lib/api"
+import { api, isArrayOf, isRecord, parseBody, parseEnvelope } from "@/lib/api"
 import type {
   CreateUserRequest,
   CreateUsuarioBody,
-  CreateUsuarioResponse,
   User,
   UserRole,
   UsuarioRow,
@@ -25,7 +24,7 @@ function isUsuarioRow(value: unknown): value is UsuarioRow {
     isRecord(value) &&
     typeof value.id_usuario === "number" &&
     typeof value.nome_razao === "string" &&
-    (value.tipo_perfil === null || isUserRole(value.tipo_perfil)) &&
+    isUserRole(value.tipo_perfil) &&
     typeof value.documento === "string"
   )
 }
@@ -52,6 +51,19 @@ export async function createUser(request: CreateUserRequest): Promise<User> {
     CreateUsuarioBody
   >("/api/usuarios", body)
 
-  const response: CreateUsuarioResponse = parseApiResponse(data, isUsuarioRow)
-  return toUser(response.data)
+  return toUser(parseEnvelope(data, isUsuarioRow))
+}
+
+export async function listUsers(
+  signal?: AbortSignal
+): Promise<readonly User[]> {
+  const { data } = await api.get<unknown>("/api/usuarios", { signal })
+
+  return parseBody(data, isArrayOf(isUsuarioRow)).map(toUser)
+}
+
+export async function getUser(id: number, signal?: AbortSignal): Promise<User> {
+  const { data } = await api.get<unknown>(`/api/usuarios/${id}`, { signal })
+
+  return toUser(parseBody(data, isUsuarioRow))
 }

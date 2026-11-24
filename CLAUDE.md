@@ -42,10 +42,10 @@ must never be committed. `.env.example` must never contain a real secret.
 
 | Variable | Required | Default | What it is |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | in production | `http://localhost:3333` in dev | Base URL of the backend API. No trailing slash. |
+| `NEXT_PUBLIC_API_BASE_URL` | in production | `http://localhost:8000` in dev | Base URL of the backend API. No trailing slash. |
 | `NEXT_PUBLIC_API_TIMEOUT` | no | `10000` | Request timeout in ms. |
 
-Set it per environment — `http://localhost:3333` locally,
+Set it per environment — `http://localhost:8000` locally,
 `https://api.seu-dominio.com.br` in production (configured in the host's dashboard, not
 in a file). Values are read and validated once in [lib/env.ts](lib/env.ts) and imported
 from there; **never reach for `process.env` elsewhere in the codebase**. A missing or
@@ -257,6 +257,6 @@ rediscovers them the hard way.
    and its fields are placeholders until the API and database specs exist.
 3. **CI runs no typecheck and no lint**, and `vitest` is installed with no config and no
    script — configure it for `lib/`/`hooks/` logic or remove the dependency.
-4. **`NEXT_PUBLIC_API_BASE_URL` points at nothing.** The axios instance is configured and
-   ready, but no backend serves `localhost:3333` yet, so every request will fail until
-   one exists.
+4. **The API needs the FastAPI backend running.** `services/` mirrors `backend/routers/`;
+   start it with `uvicorn main:app --reload --port 8000` from `backend/` (needs
+   PostgreSQL) or every request fails.

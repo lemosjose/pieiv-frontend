@@ -4,45 +4,41 @@ import {
   api,
   isArrayOf,
   isIsoDate,
-  isNullableNumber,
+  isNullableString,
   isRecord,
-  parseApiResponse,
+  parseBody,
+  parseEnvelope,
 } from "@/lib/api"
 import { isDonationStatus } from "@/services/doacoes"
 import type {
-  AgendamentoComDoacaoRow,
+  AgendamentoDetalhadoRow,
   AgendamentoRow,
   Appointment,
-  AppointmentWithDonation,
+  AppointmentDetails,
   CreateAgendamentoBody,
-  CreateAgendamentoResponse,
   CreateAppointmentRequest,
-  ListAgendamentosResponse,
 } from "@/types/api"
 
 function isAgendamentoRow(value: unknown): value is AgendamentoRow {
   return (
     isRecord(value) &&
     typeof value.id_agendamento === "number" &&
-    isNullableNumber(value.id_doacao) &&
-    isNullableNumber(value.id_instituicao) &&
+    typeof value.id_doacao === "number" &&
+    typeof value.id_instituicao === "number" &&
     isIsoDate(value.data_retirada)
   )
 }
 
-function isAgendamentoComDoacaoRow(
+function isAgendamentoDetalhadoRow(
   value: unknown
-): value is AgendamentoComDoacaoRow {
+): value is AgendamentoDetalhadoRow {
   return (
+    isAgendamentoRow(value) &&
     isRecord(value) &&
-    typeof value.id_agendamento === "number" &&
-    typeof value.id_doacao === "number" &&
-    typeof value.id_instituicao === "number" &&
-    isIsoDate(value.data_retirada) &&
-    typeof value.descricao === "string" &&
-    (value.status === null || isDonationStatus(value.status)) &&
-    typeof value.id_fornecedor === "number" &&
-    typeof value.nome_razao === "string"
+    isNullableString(value.descricao_doacao) &&
+    (value.status_doacao === null || isDonationStatus(value.status_doacao)) &&
+    isNullableString(value.nome_fornecedor) &&
+    isNullableString(value.nome_instituicao)
   )
 }
 
@@ -55,20 +51,15 @@ function toAppointment(row: AgendamentoRow): Appointment {
   }
 }
 
-function toAppointmentWithDonation(
-  row: AgendamentoComDoacaoRow
-): AppointmentWithDonation {
+function toAppointmentDetails(
+  row: AgendamentoDetalhadoRow
+): AppointmentDetails {
   return {
-    id: row.id_agendamento,
-    institutionId: row.id_instituicao,
-    pickupDate: row.data_retirada,
-    donation: {
-      id: row.id_doacao,
-      description: row.descricao,
-      status: row.status,
-      supplierId: row.id_fornecedor,
-    },
-    counterpartName: row.nome_razao,
+    ...toAppointment(row),
+    donationDescription: row.descricao_doacao,
+    donationStatus: row.status_doacao,
+    supplierName: row.nome_fornecedor,
+    institutionName: row.nome_instituicao,
   }
 }
 
@@ -77,6 +68,7 @@ export async function createAppointment(
 ): Promise<Appointment> {
   const body: CreateAgendamentoBody = {
     id_doacao: request.donationId,
+    id_instituicao: request.institutionId,
     data_retirada: request.pickupDate,
   }
 
@@ -86,24 +78,26 @@ export async function createAppointment(
     CreateAgendamentoBody
   >("/api/agendamentos", body)
 
-  const response: CreateAgendamentoResponse = parseApiResponse(
-    data,
-    isAgendamentoRow
-  )
-  return toAppointment(response.data)
+  return toAppointment(parseEnvelope(data, isAgendamentoRow))
+}
+
+export async function listAppointments(
+  signal?: AbortSignal
+): Promise<readonly Appointment[]> {
+  const { data } = await api.get<unknown>("/api/agendamentos", { signal })
+
+  return parseBody(data, isArrayOf(isAgendamentoRow)).map(toAppointment)
 }
 
 export async function listAppointmentsByUser(
   userId: number,
   signal?: AbortSignal
-): Promise<readonly AppointmentWithDonation[]> {
+): Promise<readonly AppointmentDetails[]> {
   const { data } = await api.get<unknown>(`/api/agendamentos/${userId}`, {
     signal,
   })
 
-  const response: ListAgendamentosResponse = parseApiResponse(
-    data,
-    isArrayOf(isAgendamentoComDoacaoRow)
+  return parseBody(data, isArrayOf(isAgendamentoDetalhadoRow)).map(
+    toAppointmentDetails
   )
-  return response.data.map(toAppointmentWithDonation)
 }

@@ -1,4 +1,11 @@
+import type { StaticImageData } from "next/image"
+
 import type { UserRole } from "@/types/api"
+
+export interface SignUpImage {
+  src: StaticImageData
+  alt: string
+}
 
 export interface SignUpField {
   name: string
